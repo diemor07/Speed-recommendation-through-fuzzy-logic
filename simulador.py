@@ -3,24 +3,25 @@ from tkinter import ttk
 import numpy as np
 import skfuzzy as fuzz
 from skfuzzy import control as ctrl
+import matplotlib.pyplot as plt
 
 # =========================================================
-# 1. SISTEMA 1: RIESGO
+# 1. SYSTEM 1: RISK
 # =========================================================
 
-# Entradas
+# Inputs
 meteo = ctrl.Antecedent(
     np.arange(0, 10.1, 0.1), "meteo"
-)  # 0 = muy mala, 10 = muy buena
-road = ctrl.Antecedent(np.arange(0, 10.1, 0.1), "road")  # 0 = muy mala, 10 = muy buena
+)  # 0 = very bad, 10 = very good
+road = ctrl.Antecedent(np.arange(0, 10.1, 0.1), "road")  # 0 = very bad, 10 = very good
 distance = ctrl.Antecedent(
     np.arange(0, 100.1, 0.1), "distance"
-)  # metros al coche delantero
+)  # meters to the front car
 
-# Salida
+# Output
 risk = ctrl.Consequent(np.arange(0, 10.1, 0.1), "risk")
 
-# Funciones de pertenencia
+# Membership functions
 meteo["bad"] = fuzz.trimf(meteo.universe, [0, 0, 5])
 meteo["medium"] = fuzz.trimf(meteo.universe, [2.5, 5, 7.5])
 meteo["good"] = fuzz.trimf(meteo.universe, [5, 10, 10])
@@ -37,8 +38,8 @@ risk["low"] = fuzz.trimf(risk.universe, [0, 0, 4.5])
 risk["medium"] = fuzz.trimf(risk.universe, [3, 5, 7])
 risk["high"] = fuzz.trimf(risk.universe, [5.5, 10, 10])
 
-# Reglas del riesgo
-# Casos claramente peligrosos
+# Risk rules
+# Clearly dangerous cases
 r1 = ctrl.Rule(distance["close"], risk["high"])
 r2 = ctrl.Rule(meteo["bad"] & road["bad"], risk["high"])
 r3 = ctrl.Rule(meteo["bad"] & distance["medium"], risk["high"])
@@ -48,7 +49,7 @@ r6 = ctrl.Rule(road["bad"] & distance["close"], risk["high"])
 r7 = ctrl.Rule(meteo["medium"] & road["bad"] & distance["medium"], risk["high"])
 r8 = ctrl.Rule(meteo["bad"] & road["medium"] & distance["medium"], risk["high"])
 
-# Casos intermedios
+# Intermediate cases
 r9 = ctrl.Rule(meteo["bad"], risk["medium"])
 r10 = ctrl.Rule(road["bad"], risk["medium"])
 r11 = ctrl.Rule(distance["medium"], risk["medium"])
@@ -56,7 +57,7 @@ r12 = ctrl.Rule(meteo["medium"] & road["medium"], risk["medium"])
 r13 = ctrl.Rule(meteo["medium"] & distance["medium"], risk["medium"])
 r14 = ctrl.Rule(road["medium"] & distance["medium"], risk["medium"])
 
-# Casos favorables
+# Favorable cases
 r15 = ctrl.Rule(meteo["good"] & road["good"] & distance["far"], risk["low"])
 r16 = ctrl.Rule(meteo["good"] & distance["far"], risk["low"])
 r17 = ctrl.Rule(road["good"] & distance["far"], risk["low"])
@@ -67,20 +68,20 @@ risk_ctrl = ctrl.ControlSystem(
 )
 
 # =========================================================
-# 2. SISTEMA 2: VELOCIDAD RECOMENDADA
+# 2. SYSTEM 2: RECOMMENDED SPEED
 # =========================================================
 
-# Entradas
+# Inputs
 risk_in = ctrl.Antecedent(np.arange(0, 10.1, 0.1), "risk_in")
 speed_limit = ctrl.Antecedent(np.arange(20, 120.1, 0.1), "speed_limit")
 driving_style = ctrl.Antecedent(
     np.arange(0, 10.1, 0.1), "driving_style"
-)  # 0 prudente, 10 agresivo
+)  # 0 prudent, 10 aggressive
 
-# Salida
+# Output
 recommended_speed = ctrl.Consequent(np.arange(0, 120.1, 0.1), "recommended_speed")
 
-# Funciones de pertenencia
+# Membership functions
 risk_in["low"] = fuzz.trimf(risk_in.universe, [0, 0, 4.5])
 risk_in["medium"] = fuzz.trimf(risk_in.universe, [3, 5, 7])
 risk_in["high"] = fuzz.trimf(risk_in.universe, [5.5, 10, 10])
@@ -101,6 +102,7 @@ recommended_speed["medium"] = fuzz.trimf(recommended_speed.universe, [50, 70, 90
 recommended_speed["high"] = fuzz.trimf(recommended_speed.universe, [80, 100, 120])
 recommended_speed["very_high"] = fuzz.trimf(recommended_speed.universe, [110, 120, 120])
 
+# Speed rules
 v1 = ctrl.Rule(
     speed_limit["very_low"] & risk_in["high"] & driving_style["prudent"],
     recommended_speed["very_low"],
@@ -347,7 +349,7 @@ speed_ctrl = ctrl.ControlSystem(
 )
 
 # =========================================================
-# 3. FUNCIONES AUXILIARES
+# 3. HELPER FUNCTIONS
 # =========================================================
 
 
@@ -388,7 +390,7 @@ def get_color_for_risk_class(risk_class):
 
 
 # =========================================================
-# INTERFAZ
+# 4. INTERFACE
 # =========================================================
 
 
@@ -425,69 +427,67 @@ class FuzzyCarSimulator:
         self.speed_limit_var = tk.DoubleVar(value=90.0)
         self.driving_style_var = tk.DoubleVar(value=5.0)
 
-        self.create_slider(control_frame, "Clima", self.meteo_var, 0, 10, 0.1)
+        self.create_slider(control_frame, "Weather", self.meteo_var, 0, 10, 0.1)
         self.meteo_class_label = tk.Label(
-            control_frame, text="Clase: good", font=("Arial", 11), bg="white"
+            control_frame, text="Class: GOOD", font=("Arial", 11), bg="white"
         )
         self.meteo_class_label.pack(anchor="w", pady=(0, 8))
 
-        self.create_slider(
-            control_frame, "Estado de la carretera", self.road_var, 0, 10, 0.1
-        )
+        self.create_slider(control_frame, "Road state", self.road_var, 0, 10, 0.1)
         self.road_class_label = tk.Label(
-            control_frame, text="Clase: good", font=("Arial", 11), bg="white"
+            control_frame, text="Class: GOOD", font=("Arial", 11), bg="white"
         )
         self.road_class_label.pack(anchor="w", pady=(0, 8))
 
         self.create_slider(
             control_frame,
-            "Distancia al coche delantero (m)",
+            "Distance to front car (m)",
             self.distance_var,
             0,
             100,
             1,
         )
         self.distance_class_label = tk.Label(
-            control_frame, text="Clase: far", font=("Arial", 11), bg="white"
+            control_frame, text="Class: FAR", font=("Arial", 11), bg="white"
         )
         self.distance_class_label.pack(anchor="w", pady=(0, 8))
 
         self.create_slider(
             control_frame,
-            "Límite de velocidad (km/h)",
+            "Speed limit (km/h)",
             self.speed_limit_var,
             20,
             120,
             1,
         )
         self.speed_limit_class_label = tk.Label(
-            control_frame, text="Clase: medium", font=("Arial", 11), bg="white"
+            control_frame, text="Class: MEDIUM", font=("Arial", 11), bg="white"
         )
         self.speed_limit_class_label.pack(anchor="w", pady=(0, 8))
 
         self.create_slider(
-            control_frame, "Estilo de conducción", self.driving_style_var, 0, 10, 0.1
+            control_frame, "Driving style", self.driving_style_var, 0, 10, 0.1
         )
         self.driving_style_class_label = tk.Label(
-            control_frame, text="Clase: normal", font=("Arial", 11), bg="white"
+            control_frame, text="Class: NORMAL", font=("Arial", 11), bg="white"
         )
         self.driving_style_class_label.pack(anchor="w", pady=(0, 8))
 
         ttk.Separator(control_frame, orient="horizontal").pack(fill="x", pady=15)
 
         self.risk_label = tk.Label(
-            control_frame, text="Riesgo: 0.00", font=("Arial", 14), bg="white"
+            control_frame, text="Risk: 0.00", font=("Arial", 14), bg="white"
         )
         self.risk_label.pack(anchor="w", pady=5)
 
         self.risk_class_label = tk.Label(
-            control_frame, text="Clase: medium", font=("Arial", 11, "bold"), bg="white"
+            control_frame, text="Class: MEDIUM", font=("Arial", 11, "bold"), bg="white"
         )
         self.risk_class_label.pack(anchor="w", pady=(0, 8))
 
         self.rec_speed_label = tk.Label(
             control_frame,
-            text="Velocidad recomendada: 0.00 km/h",
+            text="Recommended speed: 0.00 km/h",
             font=("Arial", 14),
             bg="white",
         )
@@ -495,7 +495,7 @@ class FuzzyCarSimulator:
 
         self.real_speed_label = tk.Label(
             control_frame,
-            text="Velocidad real: 0.00 km/h",
+            text="Real speed: 0.00 km/h",
             font=("Arial", 14),
             bg="white",
         )
@@ -537,15 +537,15 @@ class FuzzyCarSimulator:
     def draw_scene(self):
         self.canvas.delete("all")
 
-        # carretera
+        # Road
         self.canvas.create_rectangle(0, 220, 760, 360, fill="#444", outline="")
         self.canvas.create_line(0, 290, 760, 290, fill="white", width=3, dash=(20, 20))
 
-        # cielo / césped
+        # Sky / grass
         self.canvas.create_rectangle(0, 0, 760, 220, fill="#cfe8ff", outline="")
         self.canvas.create_rectangle(0, 360, 760, 500, fill="#a8d08d", outline="")
 
-        # coche azul (ego)
+        # Ego car
         self.canvas.create_rectangle(
             self.car_x,
             250,
@@ -563,7 +563,7 @@ class FuzzyCarSimulator:
             fill="white",
         )
 
-        # coche delantero rojo
+        # Front car
         distance_value = self.distance_var.get()
         visual_gap = 100 + (distance_value / 100) * 250
         front_x = self.car_x + visual_gap
@@ -597,17 +597,17 @@ class FuzzyCarSimulator:
             60, 30, 700, 55, outline="black", width=2
         )
 
-        # velocidad real
+        # Real speed
         real_width = (self.real_speed / 120) * 640
         self.speed_bar_canvas.create_rectangle(
             60, 30, 60 + real_width, 55, fill="dodgerblue", outline=""
         )
 
-        # velocidad recomendada
+        # Recommended speed
         rec_x = 60 + (self.recommended_speed / 120) * 640
         self.speed_bar_canvas.create_line(rec_x, 25, rec_x, 60, fill="green", width=3)
 
-        # límite
+        # Speed limit
         lim_x = 60 + (self.speed_limit_var.get() / 120) * 640
         self.speed_bar_canvas.create_line(
             lim_x, 25, lim_x, 60, fill="red", width=3, dash=(4, 2)
@@ -616,20 +616,20 @@ class FuzzyCarSimulator:
         self.speed_bar_canvas.create_text(
             180,
             70,
-            text=f"Velocidad real: {self.real_speed:.1f} km/h",
+            text=f"Real speed: {self.real_speed:.1f} km/h",
             font=("Arial", 18),
         )
         self.speed_bar_canvas.create_text(
             430,
             70,
-            text=f"Recomendada: {self.recommended_speed:.1f} km/h",
+            text=f"Recommended: {self.recommended_speed:.1f} km/h",
             font=("Arial", 18),
             fill="green",
         )
         self.speed_bar_canvas.create_text(
             630,
             70,
-            text=f"Límite: {self.speed_limit_var.get():.1f} km/h",
+            text=f"Limit: {self.speed_limit_var.get():.1f} km/h",
             font=("Arial", 18),
             fill="red",
         )
@@ -641,21 +641,21 @@ class FuzzyCarSimulator:
         speed_limit_value = self.speed_limit_var.get()
         driving_style_value = self.driving_style_var.get()
 
-        # Fuzzy principal
+        # Main fuzzy logic
         self.risk_value = compute_risk(meteo_value, road_value, distance_value)
         self.recommended_speed = compute_speed(
             self.risk_value, speed_limit_value, driving_style_value
         )
 
-        # por seguridad, también limitamos aquí
+        # For safety, also limit it here
         # self.recommended_speed = min(self.recommended_speed, speed_limit_value)
 
-        # Dinámica del coche
+        # Vehicle dynamics
         self.real_speed = self.real_speed + self.alpha * (
             self.recommended_speed - self.real_speed
         )
 
-        # Clases principales
+        # Main classes
         meteo_class = get_main_fuzzy_label(meteo, meteo_value)
         road_class = get_main_fuzzy_label(road, road_value)
         distance_class = get_main_fuzzy_label(distance, distance_value)
@@ -665,22 +665,22 @@ class FuzzyCarSimulator:
 
         risk_color = get_color_for_risk_class(risk_class)
 
-        # Actualizar textos
-        self.meteo_class_label.config(text=f"Clase: {meteo_class}")
-        self.road_class_label.config(text=f"Clase: {road_class}")
-        self.distance_class_label.config(text=f"Clase: {distance_class}")
-        self.speed_limit_class_label.config(text=f"Clase: {speed_limit_class}")
-        self.driving_style_class_label.config(text=f"Clase: {driving_style_class}")
+        # Update labels
+        self.meteo_class_label.config(text=f"Class: {meteo_class}")
+        self.road_class_label.config(text=f"Class: {road_class}")
+        self.distance_class_label.config(text=f"Class: {distance_class}")
+        self.speed_limit_class_label.config(text=f"Class: {speed_limit_class}")
+        self.driving_style_class_label.config(text=f"Class: {driving_style_class}")
 
-        self.risk_label.config(text=f"Riesgo: {self.risk_value:.2f}", fg=risk_color)
-        self.risk_class_label.config(text=f"Clase: {risk_class}", fg=risk_color)
+        self.risk_label.config(text=f"Risk: {self.risk_value:.2f}", fg=risk_color)
+        self.risk_class_label.config(text=f"Class: {risk_class}", fg=risk_color)
 
         self.rec_speed_label.config(
-            text=f"Velocidad recomendada: {self.recommended_speed:.2f} km/h"
+            text=f"Recommended speed: {self.recommended_speed:.2f} km/h"
         )
-        self.real_speed_label.config(text=f"Velocidad real: {self.real_speed:.2f} km/h")
+        self.real_speed_label.config(text=f"Real speed: {self.real_speed:.2f} km/h")
 
-        # Movimiento visual
+        # Visual movement
         self.car_x += self.real_speed * 0.02
         if self.car_x > 140:
             self.car_x = 80
@@ -691,7 +691,9 @@ class FuzzyCarSimulator:
         self.root.after(self.dt_ms, self.update_simulation)
 
 
-import matplotlib.pyplot as plt
+# =========================================================
+# 5. EXPORT MEMBERSHIP FUNCTION IMAGES
+# =========================================================
 
 
 def save_membership_plot(fuzzy_var, title, xlabel, filename):
@@ -702,7 +704,7 @@ def save_membership_plot(fuzzy_var, title, xlabel, filename):
 
     plt.title(title, fontsize=14)
     plt.xlabel(xlabel, fontsize=12)
-    plt.ylabel("Grado de pertenencia", fontsize=12)
+    plt.ylabel("Membership degree", fontsize=12)
     plt.ylim(-0.05, 1.05)
     plt.grid(True, alpha=0.3)
     plt.legend()
@@ -714,40 +716,44 @@ def save_membership_plot(fuzzy_var, title, xlabel, filename):
 def export_membership_images():
     save_membership_plot(
         meteo,
-        "Función de pertenencia - Meteorología",
-        "Meteorología",
+        "Membership Function - Weather",
+        "Weather",
         "meteo_membership.png",
     )
 
     save_membership_plot(
         road,
-        "Función de pertenencia - Estado de la carretera",
-        "Estado de la carretera",
+        "Membership Function - Road State",
+        "Road state",
         "road_membership.png",
     )
 
     save_membership_plot(
         distance,
-        "Función de pertenencia - Distancia frontal",
-        "Distancia frontal (m)",
+        "Membership Function - Front Distance",
+        "Front distance (m)",
         "distance_membership.png",
     )
+
     save_membership_plot(
-        risk_in, "Funciones de pertenencia - Riesgo", "Riesgo", "riesgo_membership.png"
+        risk_in,
+        "Membership Function - Risk",
+        "Risk",
+        "risk_membership.png",
     )
 
     save_membership_plot(
         driving_style,
-        "Funciones de pertenencia - Estilo de conducción",
-        "Estilo de conducción",
-        "estilo_conduccion_membership.png",
+        "Membership Function - Driving Style",
+        "Driving style",
+        "driving_style_membership.png",
     )
 
     save_membership_plot(
         speed_limit,
-        "Funciones de pertenencia - Límite de velocidad",
-        "Velocidad (km/h)",
-        "limite_velocidad_membership.png",
+        "Membership Function - Speed Limit",
+        "Speed limit (km/h)",
+        "speed_limit_membership.png",
     )
 
 
